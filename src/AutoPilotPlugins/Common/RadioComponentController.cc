@@ -186,7 +186,7 @@ void RadioComponentController::_setupCurrentState()
     _skipButton->setEnabled(state->skipFn != nullptr);
 }
 
-void RadioComponentController::_rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels])
+void RadioComponentController::_rcChannelsChanged(int channelCount, QVariantList pwmValues)
 {
     // Below is a hack that's needed by ELRS
     // ELRS is not sending a full RC_CHANNELS packet, only channel update
@@ -194,12 +194,12 @@ void RadioComponentController::_rcChannelsChanged(int channelCount, int pwmValue
     // Therefore, the number of channels is not set.
     if (channelCount == 0) {
         for (int channel=0; channel<16; channel++) {
-            if (pwmValues[channel] != INT16_MAX) channelCount++;
+            if (pwmValues[channel].toInt() != INT16_MAX) channelCount++;
         }
     }
 
     for (int channel=0; channel<channelCount; channel++) {
-        const int channelValue = pwmValues[channel];
+        const int channelValue = pwmValues[channel].toInt();
 
         if (channelValue != -1) {
             qCDebug(RadioComponentControllerVerboseLog) << "Raw value" << channel << channelValue;

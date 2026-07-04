@@ -105,11 +105,14 @@ int main(int argc, char *argv[])
 
     RunGuard guard(runguardString);
     if (!bypassRunGuard && !guard.tryToRun()) {
-        QApplication errorApp(argc, argv);
-        QMessageBox::critical(nullptr, QObject::tr("Error"),
-            QObject::tr("A second instance of %1 is already running. Please close the other instance and try again.").arg(QGC_APP_NAME)
-        );
-        return -1;
+        guard.release();
+        if (!guard.tryToRun()) {
+            QApplication errorApp(argc, argv);
+            QMessageBox::critical(nullptr, QObject::tr("Error"),
+                QObject::tr("A second instance of %1 is already running. Please close the other instance and try again.").arg(QGC_APP_NAME)
+            );
+            return -1;
+        }
     }
 #endif
 

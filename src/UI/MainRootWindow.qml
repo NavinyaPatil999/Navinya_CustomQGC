@@ -192,12 +192,13 @@ ApplicationWindow {
     }
 
     property bool _forceClose: false
-
+    property bool _vehicleRebooting: false
+    
     function finishCloseProcess() {
         _forceClose = true
-        // For some reason on the Qml side Qt doesn't automatically disconnect a signal when an object is destroyed.
-        // So we have to do it ourselves otherwise the signal flows through on app shutdown to an object which no longer exists.
+        QGroundControl.multiVehicleManager.prepareShutdown()
         firstRunPromptManager.clearNextPromptSignal()
+        QGroundControl.multiVehicleManager.prepareShutdown()
         QGroundControl.linkManager.shutdown()
         QGroundControl.videoManager.stopVideo();
         mainWindow.close()
@@ -249,7 +250,7 @@ ApplicationWindow {
         }
         return true
     }
-
+    
     function checkForActiveConnections() {
         if (QGroundControl.multiVehicleManager.activeVehicle) {
             mainWindow.showMessageDialog(closeDialogTitle,
@@ -268,6 +269,7 @@ ApplicationWindow {
             close.accepted = performCloseChecks()
         }
     }
+    
 
     background: Rectangle {
         anchors.fill:   parent

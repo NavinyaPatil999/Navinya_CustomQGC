@@ -303,6 +303,7 @@ public:
 
     /// @return The minimum takeoff altitude (relative) for guided takeoff.
     Q_INVOKABLE double minimumTakeoffAltitudeMeters();
+    Q_INVOKABLE void setFlightMode(const QString& flightMode);
 
     /// @return Maximum horizontal speed multirotor.
     Q_INVOKABLE double maximumHorizontalSpeedMultirotor();
@@ -315,7 +316,6 @@ public:
 
     /// Command vehicle to move to specified location (altitude is ignored)
     Q_INVOKABLE void guidedModeGotoLocation(const QGeoCoordinate& gotoCoord, double forwardFlightLoiterRadius = 0.0f);
-
     /// Command vehicle to change altitude
     ///     @param altitudeChange If > 0, go up by amount specified, if < 0, go down by amount specified
     ///     @param pauseVehicle true: pause vehicle prior to altitude change
@@ -324,6 +324,8 @@ public:
     /// Command vehicle to change yaw
     ///     @param coordinate to rotate towards
     Q_INVOKABLE void guidedModeChangeHeading(const QGeoCoordinate &headingCoord);
+    Q_INVOKABLE void guidedModeSetHeading(double headingDeg);
+    Q_INVOKABLE void guidedModeSetVelocityNED(double vx, double vy, double vz);
 
     /// Command vehicle to change groundspeed
     ///     @param groundspeed Target horizontal groundspeed
@@ -394,7 +396,7 @@ public:
     Q_INVOKABLE void setPIDTuningTelemetryMode(PIDTuningTelemetryMode mode);
     
     Q_INVOKABLE void forceArm           ();
-
+    Q_INVOKABLE void sendParamSet(int componentId, const QString& paramName, float value);
     /// Sends PARAM_MAP_RC message to vehicle
     Q_INVOKABLE void sendParamMapRC(const QString& paramName, double scale, double centerValue, int tuningID, double minValue, double maxValue);
 
@@ -476,7 +478,6 @@ public:
     bool flightModeSetAvailable             ();
     QStringList flightModes                 ();
     QString flightMode                      () const;
-    void setFlightMode                      (const QString& flightMode);
 
     bool airship() const;
 
@@ -885,8 +886,7 @@ signals:
     /// New RC channel values coming from RC_CHANNELS message
     ///     @param channelCount Number of available channels, maxRcChannels max
     ///     @param pwmValues -1 signals channel not available
-    void rcChannelsChanged              (int channelCount, int pwmValues[QGCMAVLink::maxRcChannels]);
-
+    void rcChannelsChanged(int channelCount, QVariantList pwmValues);
     /// Remote control RSSI changed  (0% - 100%)
     void remoteControlRSSIChanged       (uint8_t rssi);
 

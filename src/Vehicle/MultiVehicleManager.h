@@ -48,6 +48,8 @@ public:
     Q_INVOKABLE void      selectVehicle(int vehicleId);
     Q_INVOKABLE void    deselectVehicle(int vehicleId);
     Q_INVOKABLE void    deselectAllVehicles();
+    Q_INVOKABLE void prepareShutdown() { _shuttingDown = true; }
+    
     QmlObjectListModel *vehicles() const { return _vehicles; }
     QmlObjectListModel *selectedVehicles() const { return _selectedVehicles; }
     Vehicle *offlineEditingVehicle() const { return _offlineEditingVehicle; }
@@ -88,6 +90,7 @@ private:
     Vehicle *_activeVehicle = nullptr;              ///< Currently active vehicle from a ui perspective
     QList<int> _ignoreVehicleIds;                   ///< List of vehicle id for which we ignore further communication
     bool _initialized = false;
+    bool _shuttingDown = false;
 
     static constexpr int kGCSHeartbeatRateMSecs = 1000;  ///< Heartbeat rate
 };

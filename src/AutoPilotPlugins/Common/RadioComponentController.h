@@ -122,7 +122,7 @@ signals:
 
 private slots:
     /// Connected to Vehicle::rcChannelsChanged signal
-    void _rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels]);
+    void _rcChannelsChanged(int channelCount, QVariantList pwmValues);
 
 private:
     /// These identify the various controls functions. They are also used as indices into the _rgFunctioInfo array.

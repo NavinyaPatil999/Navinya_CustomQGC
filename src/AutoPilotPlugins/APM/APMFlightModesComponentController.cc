@@ -65,8 +65,7 @@ APMFlightModesComponentController::APMFlightModesComponentController(QObject *pa
     (void) connect(_vehicle, &Vehicle::rcChannelsChanged, this, &APMFlightModesComponentController::_rcChannelsChanged);
 }
 
-void APMFlightModesComponentController::_rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels])
-{
+void APMFlightModesComponentController::_rcChannelsChanged(int channelCount, QVariantList pwmValues){
     int flightModeChannel = 4;
 
     if (parameterExists(ParameterManager::defaultComponentId, _modeChannelParam)) {
@@ -78,7 +77,7 @@ void APMFlightModesComponentController::_rcChannelsChanged(int channelCount, int
     }
 
     _activeFlightMode = 0;
-    int channelValue = pwmValues[flightModeChannel];
+    int channelValue = pwmValues[flightModeChannel].toInt();
     if (channelValue != -1) {
         bool found = false;
         static constexpr const int rgThreshold[] = { 1230, 1360, 1490, 1620, 1749 };
@@ -97,7 +96,7 @@ void APMFlightModesComponentController::_rcChannelsChanged(int channelCount, int
 
     for (int i = 0; i < _cChannelOptions; i++) {
         _rgChannelOptionEnabled[i] = QVariant(false);
-        channelValue = pwmValues[i + 5];
+        channelValue = pwmValues[i + 5].toInt();
         if (channelValue > 1800) {
             _rgChannelOptionEnabled[i] = QVariant(true);
         }

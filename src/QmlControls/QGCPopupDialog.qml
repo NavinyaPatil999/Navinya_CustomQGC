@@ -68,15 +68,9 @@ Popup {
     property bool   _rejectAllowed:     rejectButton.visible
     property int    _previousValidationErrorCount: 0
 
-    background: QGCMouseArea {
+    background: Item {
         width:  mainWindow.width
         height: mainWindow.height
-
-        onClicked: {
-            if (closePolicy & Popup.CloseOnPressOutside) {
-                _reject()
-            }
-        }
     }
 
     Component.onCompleted: {

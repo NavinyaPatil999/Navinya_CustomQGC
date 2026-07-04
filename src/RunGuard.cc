@@ -81,7 +81,14 @@ bool RunGuard::tryToRun()
 void RunGuard::release()
 {
     memLock.acquire();
-    if ( sharedMem.isAttached() )
+    if ( sharedMem.isAttached() ) {
         sharedMem.detach();
+    } else {
+        // Force-attach to stale segment left by crashed instance, then detach to clean it up
+        QSharedMemory stale( sharedmemKey );
+        if ( stale.attach() ) {
+            stale.detach();
+        }
+    }
     memLock.release();
 }

@@ -143,7 +143,22 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
 
     Vehicle *const vehicle = new Vehicle(link, vehicleId, componentId, (MAV_AUTOPILOT)vehicleFirmwareType, (MAV_TYPE)vehicleType, this);
     (void) connect(vehicle, &Vehicle::requestProtocolVersion, this, &MultiVehicleManager::_requestProtocolVersion);
-    (void) connect(vehicle->vehicleLinkManager(), &VehicleLinkManager::allLinksRemoved, this, &MultiVehicleManager::_deleteVehiclePhase1);
+
+
+    (void) connect(vehicle->vehicleLinkManager(), &VehicleLinkManager::allLinksRemoved, this, [this](Vehicle *vehicle) {
+        if (_shuttingDown) {
+            // App is closing deliberately - always delete vehicle
+            _deleteVehiclePhase1(vehicle);
+        } else if (!vehicle->vehicleLinkManager()->communicationLostEnabled()) {
+            // communicationLostEnabled=false means manual user disconnect
+            _deleteVehiclePhase1(vehicle);
+        } else {
+            // communicationLostEnabled=true means unexpected drop (drone reboot) - keep alive
+            qCDebug(MultiVehicleManagerLog) << "allLinksRemoved: drone reboot, keeping vehicle for reconnect";
+        }
+    });
+
+
     (void) connect(vehicle->parameterManager(), &ParameterManager::parametersReadyChanged, this, &MultiVehicleManager::_vehicleParametersReadyChanged);
 
     _vehicles->append(vehicle);

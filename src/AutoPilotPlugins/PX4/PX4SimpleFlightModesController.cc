@@ -30,11 +30,11 @@ PX4SimpleFlightModesController::PX4SimpleFlightModesController(void)
 }
 
 /// Connected to Vehicle::rcChannelsChanged signal
-void PX4SimpleFlightModesController::_rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels])
+void PX4SimpleFlightModesController::_rcChannelsChanged(int channelCount, QVariantList pwmValues)
 {
     _rcChannelValues.clear();
     for (int i=0; i<channelCount; i++) {
-        _rcChannelValues.append(pwmValues[i]);
+        _rcChannelValues.append(pwmValues[i].toInt());
     }
     emit rcChannelValuesChanged();
 
@@ -121,7 +121,7 @@ void PX4SimpleFlightModesController::_rcChannelsChanged(int channelCount, int pw
     }
 
     _activeFlightMode = 0;
-    int channelValue = pwmValues[flightModeChannel];
+    int channelValue = pwmValues[flightModeChannel].toInt();
 
     if (channelValue != -1) {
         /* the half width of the range of a slot is the total range

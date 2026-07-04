@@ -27,10 +27,10 @@ RCChannelMonitorController::~RCChannelMonitorController()
     // qCDebug(RCChannelMonitorControllerLog) << Q_FUNC_INFO << this;
 }
 
-void RCChannelMonitorController::_rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels])
+void RCChannelMonitorController::_rcChannelsChanged(int channelCount, QVariantList pwmValues)
 {
     for (int channel = 0; channel < channelCount; channel++) {
-        const int channelValue = pwmValues[channel];
+        const int channelValue = pwmValues[channel].toInt();
 
         if (_chanCount != channelCount) {
             _chanCount = channelCount;

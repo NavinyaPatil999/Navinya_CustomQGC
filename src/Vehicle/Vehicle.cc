@@ -1466,7 +1466,12 @@ void Vehicle::_handleRCChannels(mavlink_message_t& message)
     }
 
     emit remoteControlRSSIChanged(channels.rssi);
-    emit rcChannelsChanged(channels.chancount, pwmValues);
+    QVariantList pwmList;
+    for (int i = 0; i < QGCMAVLink::maxRcChannels; i++) {
+        pwmList.append(QVariant(pwmValues[i]));
+    }
+    emit rcChannelsChanged(channels.chancount, pwmList);
+
 }
 
 bool Vehicle::sendMessageOnLinkThreadSafe(LinkInterface* link, mavlink_message_t message)
@@ -1632,51 +1637,36 @@ QString Vehicle::flightMode() const
 {
     return _firmwarePlugin->flightMode(_base_mode, _custom_mode);
 }
-
-bool Vehicle::setFlightModeCustom(const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode)
-{
-    return _firmwarePlugin->setFlightMode(flightMode, base_mode, custom_mode);
-}
-
 void Vehicle::setFlightMode(const QString& flightMode)
 {
-    uint8_t     base_mode;
-    uint32_t    custom_mode;
-
+    uint8_t  base_mode;
+    uint32_t custom_mode;
     if (setFlightModeCustom(flightMode, &base_mode, &custom_mode)) {
         SharedLinkInterfacePtr sharedLink = vehicleLinkManager()->primaryLink().lock();
         if (!sharedLink) {
             qCDebug(VehicleLog) << "setFlightMode: primary link gone!";
             return;
         }
-
-        uint8_t newBaseMode = _base_mode & ~MAV_MODE_FLAG_DECODE_POSITION_CUSTOM_MODE;
-
-        // setFlightMode will only set MAV_MODE_FLAG_CUSTOM_MODE_ENABLED in base_mode, we need to move back in the existing
-        // states.
-        newBaseMode |= base_mode;
-
-        if (_firmwarePlugin->MAV_CMD_DO_SET_MODE_is_supported()) {
-            sendMavCommand(defaultComponentId(),
-                           MAV_CMD_DO_SET_MODE,
-                           true,    // show error if fails
-                           MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-                           custom_mode);
-        } else {
-            mavlink_message_t msg;
-            mavlink_msg_set_mode_pack_chan(MAVLinkProtocol::instance()->getSystemId(),
-                                           MAVLinkProtocol::getComponentId(),
-                                           sharedLink->mavlinkChannel(),
-                                           &msg,
-                                           id(),
-                                           newBaseMode,
-                                           custom_mode);
-            sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-        }
+        mavlink_message_t msg;
+        mavlink_msg_set_mode_pack_chan(
+            MAVLinkProtocol::instance()->getSystemId(),
+            MAVLinkProtocol::getComponentId(),
+            sharedLink->mavlinkChannel(),
+            &msg,
+            id(),
+            base_mode,
+            custom_mode);
+        sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
     } else {
-        qCWarning(VehicleLog) << "FirmwarePlugin::setFlightMode failed, flightMode:" << flightMode;
+        qCWarning(VehicleLog) << "setFlightMode: unknown flight mode" << flightMode;
     }
 }
+
+bool Vehicle::setFlightModeCustom(const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode)
+{
+    return _firmwarePlugin->setFlightMode(flightMode, base_mode, custom_mode);
+}
+
 
 #if 0
 QVariantList Vehicle::links() const {
@@ -2299,7 +2289,22 @@ void Vehicle::guidedModeChangeHeading(const QGeoCoordinate &headingCoord)
 
     _firmwarePlugin->guidedModeChangeHeading(this, headingCoord);
 }
+void Vehicle::guidedModeSetHeading(double headingDeg)
+{
+    if (!guidedModeSupported()) {
+        qgcApp()->showAppMessage(guided_mode_not_supported_by_vehicle);
+        return;
+    }
 
+    sendMavCommand(
+        defaultComponentId(),
+        MAV_CMD_CONDITION_YAW,
+        true,
+        static_cast<float>(headingDeg),
+        20.0f,
+        1.0f,   // 0=shortest path, was 1.0f=forced CW
+        0.0f);
+}
 void Vehicle::pauseVehicle()
 {
     if (!pauseVehicleSupported()) {
@@ -4386,5 +4391,60 @@ MAVLinkLogManager *Vehicle::mavlinkLogManager() const
 {
     return _mavlinkLogManager;
 }
+void Vehicle::guidedModeSetVelocityNED(double vx, double vy, double vz)
+{
+    if (!guidedModeSupported()) {
+        return;
+    }
 
+    SharedLinkInterfacePtr sharedLink = vehicleLinkManager()->primaryLink().lock();
+    if (!sharedLink) {
+        return;
+    }
+
+    mavlink_message_t msg;
+    mavlink_set_position_target_local_ned_t sp;
+    memset(&sp, 0, sizeof(sp));
+
+    sp.target_system    = static_cast<uint8_t>(_id);
+    sp.target_component = static_cast<uint8_t>(_defaultComponentId);
+    sp.coordinate_frame = MAV_FRAME_LOCAL_NED;
+    sp.type_mask        = 0b0000111111000111;  // velocity only, ignore pos/accel
+    sp.vx               = static_cast<float>(vx);
+    sp.vy               = static_cast<float>(vy);
+    sp.vz               = static_cast<float>(vz);
+
+    mavlink_msg_set_position_target_local_ned_encode_chan(
+        static_cast<uint8_t>(MAVLinkProtocol::instance()->getSystemId()),
+        static_cast<uint8_t>(MAVLinkProtocol::instance()->getComponentId()),
+        sharedLink->mavlinkChannel(),
+        &msg,
+        &sp);
+
+    sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+}
+void Vehicle::sendParamSet(int componentId, const QString& paramName, float value)
+{
+    SharedLinkInterfacePtr sharedLink = _vehicleLinkManager->primaryLink().lock();
+    if (!sharedLink) return;
+
+    mavlink_message_t msg;
+    mavlink_param_set_t p;
+    memset(&p, 0, sizeof(p));
+
+    p.target_system    = static_cast<uint8_t>(_id);
+    p.target_component = static_cast<uint8_t>(componentId);
+    p.param_type       = MAV_PARAM_TYPE_REAL32;
+    p.param_value      = value;
+
+    strncpy(p.param_id, paramName.toStdString().c_str(), sizeof(p.param_id));
+
+    mavlink_msg_param_set_encode_chan(
+        static_cast<uint8_t>(MAVLinkProtocol::instance()->getSystemId()),
+        static_cast<uint8_t>(MAVLinkProtocol::getComponentId()),
+        sharedLink->mavlinkChannel(),
+        &msg, &p);
+
+    sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+}
 /*---------------------------------------------------------------------------*/

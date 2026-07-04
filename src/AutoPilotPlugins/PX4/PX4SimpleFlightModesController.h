@@ -35,7 +35,7 @@ signals:
     void rcChannelValuesChanged(void);
     
 private slots:
-    void _rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels]);
+    void _rcChannelsChanged(int channelCount, QVariantList pwmValues);
     
 private:
     int             _activeFlightMode;

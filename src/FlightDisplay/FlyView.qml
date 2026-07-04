@@ -178,5 +178,128 @@ Item {
             id:                     viewer3DWindow
             anchors.fill:           parent
         }
+        
+        Item {
+            id: rcPopupLayer
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.margins: ScreenTools.defaultFontPixelWidth * 2
+            width: ScreenTools.defaultFontPixelWidth * 26
+            height: rcToastList.height
+            z: 9999
+
+            property var _lastValues: ({})
+
+            function _channelName(i) {
+                if (i === 0) return "Roll"
+                if (i === 1) return "Pitch"
+                if (i === 2) return "Throttle"
+                if (i === 3) return "Yaw"
+                return "CH" + (i + 1)
+            }
+
+            function _addToast(label, val) {
+                if (rcToastModel.count > 8) return
+                var text = label + "  →  " + val
+                for (var i = 0; i < rcToastModel.count; i++) {
+                    if (rcToastModel.get(i).lbl === label) {
+                        rcToastModel.setProperty(i, "txt", text)
+                        return
+                    }
+                }
+                rcToastModel.append({ "lbl": label, "txt": text })
+                if (rcToastModel.count > 6)
+                    rcToastModel.remove(0)
+            }
+
+            ListModel { id: rcToastModel }
+
+            Connections {
+                target: QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle : null
+
+                function onRcChannelsChanged(channelCount, pwmValues) {
+                    if (!pwmValues || channelCount <= 0) return
+                    for (var i = 0; i < channelCount; i++) {
+                        if (i >= pwmValues.length) break
+                        var val = pwmValues[i]
+                        if (val === undefined || val === null) continue
+                        val = parseInt(val)
+                        if (isNaN(val) || val <= 0) continue
+                        var prev = rcPopupLayer._lastValues[i]
+                        if (prev !== undefined && Math.abs(prev - val) < 80) continue
+                        rcPopupLayer._lastValues[i] = val
+                        rcPopupLayer._addToast(rcPopupLayer._channelName(i), val)
+                    }
+                }
+            }
+
+            ListView {
+                id: rcToastList
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: Math.min(contentHeight, 400)
+                spacing: 5
+                model: rcToastModel
+                verticalLayoutDirection: ListView.BottomToTop
+
+                delegate: Item {
+                    id: rcDelegate
+                    width: rcToastList.width
+                    height: rcPill.height + 4
+                    opacity: 1.0
+
+                    Behavior on opacity { NumberAnimation { duration: 380 } }
+
+                    Timer {
+                        interval: 2500
+                        running: true
+                        repeat: false
+                        onTriggered: rcDelegate.opacity = 0
+                    }
+
+                    Timer {
+                        interval: 2900
+                        running: true
+                        repeat: false
+                        onTriggered: {
+                            if (index >= 0 && index < rcToastModel.count) {
+                                rcToastModel.remove(index)
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        id: rcPill
+                        width: parent.width
+                        height: rcRow.implicitHeight + 14
+                        radius: 7
+                        color: "#D91C1C2E"
+                        border.color: "#5E7BFF"
+                        border.width: 1
+
+                        RowLayout {
+                            id: rcRow
+                            anchors.centerIn: parent
+                            spacing: 10
+
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: "#6C8CFF"
+                            }
+
+                            Text {
+                                text: model.txt
+                                color: "white"
+                                font.pixelSize: ScreenTools.defaultFontPixelSize * 0.88
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
