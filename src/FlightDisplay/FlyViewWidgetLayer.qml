@@ -333,7 +333,7 @@ Item {
         anchors.left:         parent.left
         anchors.bottom:       parent.bottom
         anchors.leftMargin:   ScreenTools.defaultFontPixelWidth * 2
-        anchors.bottomMargin: ScreenTools.defaultFontPixelWidth * 30h
+        anchors.bottomMargin: ScreenTools.defaultFontPixelWidth * 30
         width:                ScreenTools.defaultFontPixelWidth * 100
         height:               _3dBtn.height + (_3dPanel.visible ? _3dPanel.height + 6 : 0)
         z:                    QGroundControl.zOrderWidgets
