@@ -40,7 +40,7 @@ jobs:
       has_jobs: ${{ steps.plan.outputs.has_jobs }}
     steps:
       - name: Checkout planner
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           sparse-checkout: |
@@ -84,7 +84,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload Grype results to GitHub Security
         if: steps.artifact.outputs.found == 'true'
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.37.3
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
           category: 'grype-${{ matrix.platform }}'
