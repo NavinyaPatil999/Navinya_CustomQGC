@@ -80,7 +80,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             .github
@@ -97,7 +97,7 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: inputs.platform == 'linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+        uses: awalsh128/cache-apt-pkgs-action@v1.6.3
         with:
           packages: >-
             build-essential pkg-config git
@@ -119,7 +119,7 @@ jobs:
 
       - name: Install dependencies (Android)
         if: inputs.platform == 'android'
-        uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+        uses: awalsh128/cache-apt-pkgs-action@v1.6.3
         with:
           packages: >-
             python3-pip git autoconf automake libtool
